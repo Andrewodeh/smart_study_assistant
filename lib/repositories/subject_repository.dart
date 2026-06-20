@@ -1,15 +1,10 @@
-import 'dart:convert'; // for json.encode / json.decode
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/subject.dart';
-
+import 'package:hive_flutter/hive_flutter.dart';
 // ----------------------------
 // Repository INTERFACE (the "contract" for data handling).
 // The ViewModel only ever talks to this interface, never to storage
 // directly. This is the key idea behind "Data Handling in MVVM":
 // the rest of the app does not care HOW or WHERE data is stored.
-//
-// Task 5 can later create a HiveSubjectRepository that implements this
-// same interface, and nothing in the ViewModel or UI has to change.
 // ----------------------------
 abstract class SubjectRepository {
   Future<List<Subject>> getSubjects();
@@ -20,66 +15,53 @@ abstract class SubjectRepository {
 }
 
 // ----------------------------
-// SharedPreferences implementation.
-// Stores the whole list as one JSON string under a single key.
-// (Same shared_preferences style used in the professor's examples.)
+// Hive implementation.
+// Handles each subject as a distinct key-value pair inside Hive.
 // ----------------------------
-class SharedPrefsSubjectRepository implements SubjectRepository {
-  static const String _key = 'subjects';
+class HiveSubjectRepository implements SubjectRepository {
+  static const String _boxName = 'subjects_box';
 
-  // Read the raw JSON from storage and turn it into Subject objects.
-  Future<List<Subject>> _readAll() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? data = prefs.getString(_key);
-    if (data == null || data.isEmpty) {
-      return [];
+  // Helper method to make sure the box is open before reading/writing
+  Future<Box<Subject>> _getBox() async {
+    if (!Hive.isBoxOpen(_boxName)) {
+      return await Hive.openBox<Subject>(_boxName);
     }
-    final List<dynamic> jsonList = json.decode(data);
-    return jsonList.map((e) => Subject.fromJson(e)).toList();
-  }
-
-  // Save a list of Subject objects back to storage as JSON.
-  Future<void> _writeAll(List<Subject> subjects) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String data = json.encode(subjects.map((s) => s.toJson()).toList());
-    await prefs.setString(_key, data);
+    return Hive.box<Subject>(_boxName);
   }
 
   @override
   Future<List<Subject>> getSubjects() async {
-    return await _readAll();
+    final box = await _getBox();
+    return box.values.toList();
   }
 
   @override
   Future<void> addSubject(Subject subject) async {
-    final List<Subject> subjects = await _readAll();
-    subjects.add(subject);
-    await _writeAll(subjects);
+    final box = await _getBox();
+    // Save using the subject id as the unique database key
+    await box.put(subject.id, subject);
   }
 
   @override
   Future<void> updateSubject(Subject subject) async {
-    final List<Subject> subjects = await _readAll();
-    final int index = subjects.indexWhere((s) => s.id == subject.id);
-    if (index != -1) {
-      subjects[index] = subject;
-      await _writeAll(subjects);
-    }
+    final box = await _getBox();
+    // In Hive, putting data on an existing key overwrites/updates it
+    await box.put(subject.id, subject);
   }
 
   @override
   Future<void> deleteSubject(String id) async {
-    final List<Subject> subjects = await _readAll();
-    subjects.removeWhere((s) => s.id == id);
-    await _writeAll(subjects);
+    final box = await _getBox();
+    await box.delete(id);
   }
 
-  // Search by name, code, or instructor (case-insensitive).
   @override
   Future<List<Subject>> searchSubjects(String query) async {
-    final List<Subject> subjects = await _readAll();
+    final box = await _getBox();
     final String lower = query.toLowerCase();
-    return subjects.where((s) {
+    
+    // Filters items directly out of the local memory box
+    return box.values.where((s) {
       return s.name.toLowerCase().contains(lower) ||
           s.code.toLowerCase().contains(lower) ||
           s.instructor.toLowerCase().contains(lower);

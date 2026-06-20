@@ -18,9 +18,8 @@ class SubjectsScreen extends StatefulWidget {
 
 class _SubjectsScreenState extends State<SubjectsScreen> {
   // Create the ViewModel and hand it a repository.
-  // (Swap SharedPrefsSubjectRepository() for HiveSubjectRepository() later.)
   final SubjectViewModel _viewModel =
-      SubjectViewModel(SharedPrefsSubjectRepository());
+      SubjectViewModel(HiveSubjectRepository());
 
   final TextEditingController _searchController = TextEditingController();
 
