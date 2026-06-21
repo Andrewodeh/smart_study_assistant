@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:provider/provider.dart';
 import '../viewmodels/exam_viewmodel.dart';
+=======
+import '../widgets/page_container.dart';
+>>>>>>> 188ccf4 (Add smart study assistant screens and services)
 
 class ExamsScreen extends StatelessWidget {
   const ExamsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final vm = Provider.of<ExamViewModel>(context);
 
     return Scaffold(
@@ -20,10 +25,30 @@ class ExamsScreen extends StatelessWidget {
             Text(
               "Exams Countdown",
               style: TextStyle(fontWeight: FontWeight.bold),
+=======
+    return Scaffold(
+      appBar: AppBar(title: const Text('Exams')),
+      body: PageContainer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Track your upcoming exams and test schedules.',
+              style: TextStyle(fontSize: 13.5, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 24),
+            _buildComingSoonCard(
+              icon: Icons.assignment_outlined,
+              iconBgColor: const Color(0xFFFEF2F2),
+              iconColor: const Color(0xFFC0392B),
+              message: 'Exam tracking will be available here. '
+                  'Your teammate is currently building this feature.',
+>>>>>>> 188ccf4 (Add smart study assistant screens and services)
             ),
           ],
         ),
       ),
+<<<<<<< HEAD
 
       body: vm.exams.isEmpty
           ? const Center(
@@ -175,6 +200,60 @@ class ExamsScreen extends StatelessWidget {
               }
             },
             child: const Text("Add"),
+=======
+    );
+  }
+
+  Widget _buildComingSoonCard({
+    required IconData icon,
+    required Color iconBgColor,
+    required Color iconColor,
+    required String message,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Coming Soon',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A2E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF64748B),
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+>>>>>>> 188ccf4 (Add smart study assistant screens and services)
           ),
         ],
       ),

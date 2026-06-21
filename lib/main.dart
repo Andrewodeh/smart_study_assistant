@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:provider/provider.dart';
 
 import 'viewmodels/exam_viewmodel.dart';
 import 'views/exams_screen.dart';
+=======
+import 'views/main_screen.dart';
+>>>>>>> 188ccf4 (Add smart study assistant screens and services)
 
 void main() {
   runApp(
@@ -19,9 +23,89 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+<<<<<<< HEAD
       debugShowCheckedModeBanner: false,
       title: 'Exams Countdown',
       home: const ExamsScreen(),
+=======
+      title: 'Smart Study Assistant',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: const Color(0xFF0F1F3D),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF0F1F3D),
+          secondary: Color(0xFFE8A020),
+          surface: Colors.white,
+          onPrimary: Colors.white,
+          onSecondary: Colors.white,
+          onSurface: Color(0xFF1A1A2E),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF5F4F0),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0F1F3D),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: IconThemeData(color: Colors.white),
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: Color(0xFF0F1F3D),
+          foregroundColor: Colors.white,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0F1F3D),
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(50),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: Color(0xFF0F1F3D),
+              width: 1.5,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+        ),
+      ),
+      home: const MainScreen(),
+>>>>>>> 188ccf4 (Add smart study assistant screens and services)
     );
   }
 }
