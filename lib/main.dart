@@ -2,12 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'viewmodels/exam_viewmodel.dart';
+import 'viewmodels/assignment_viewmodel.dart';
+import 'services/notification_service.dart';
 import 'views/main_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ExamViewModel(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ExamViewModel()),
+        ChangeNotifierProvider(create: (_) => AssignmentViewModel()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -84,10 +92,7 @@ class MyApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-              color: Color(0xFF0F1F3D),
-              width: 1.5,
-            ),
+            borderSide: const BorderSide(color: Color(0xFF0F1F3D), width: 1.5),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,

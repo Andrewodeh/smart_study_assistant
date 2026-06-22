@@ -3,6 +3,8 @@ import '../repositories/subject_repository.dart';
 import '../viewmodels/subject_viewmodel.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/dashboard_card.dart';
+import 'package:provider/provider.dart';
+import '../viewmodels/assignment_viewmodel.dart';
 
 class HomeScreen extends StatefulWidget {
   final void Function(int index) onNavigate;
@@ -14,8 +16,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final SubjectViewModel _subjectViewModel =
-      SubjectViewModel(SharedPrefsSubjectRepository());
+  final SubjectViewModel _subjectViewModel = SubjectViewModel(
+    SharedPrefsSubjectRepository(),
+  );
 
   @override
   void initState() {
@@ -31,12 +34,27 @@ class _HomeScreenState extends State<HomeScreen> {
   String _formattedDate() {
     final DateTime now = DateTime.now();
     const List<String> months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     const List<String> weekdays = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-      'Friday', 'Saturday', 'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     ];
     return '${weekdays[now.weekday - 1]}, '
         '${months[now.month - 1]} ${now.day}, ${now.year}';
@@ -45,6 +63,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final int subjectCount = _subjectViewModel.subjects.length;
+
+    final assignmentVm = Provider.of<AssignmentViewModel>(context);
+    final pendingAssignments = assignmentVm.assignments
+        .where((assignment) => !assignment.isCompleted)
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F4F0),
@@ -63,7 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       _buildSectionTitle('Quick Access'),
                       const SizedBox(height: 14),
-                      _buildQuickAccessGrid(subjectCount),
+                      _buildQuickAccessGrid(
+                        subjectCount,
+                        pendingAssignments.length,
+                      ),
                       const SizedBox(height: 32),
                       _buildSectionTitle('Upcoming Exams'),
                       const SizedBox(height: 12),
@@ -74,10 +100,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 28),
                       _buildSectionTitle('Pending Assignments'),
                       const SizedBox(height: 12),
-                      _buildPlaceholderCard(
-                        'No pending assignments yet.',
-                        Icons.task_outlined,
-                      ),
+                      pendingAssignments.isEmpty
+                          ? _buildPlaceholderCard(
+                              'No pending assignments yet.',
+                              Icons.task_outlined,
+                            )
+                          : Column(
+                              children: pendingAssignments.map((assignment) {
+                                return _buildAssignmentPreviewCard(
+                                  assignment.title,
+                                  assignment.dueDate,
+                                );
+                              }).toList(),
+                            ),
                     ],
                   ),
                 ),
@@ -123,10 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: 3),
                   Text(
                     'Plan smarter. Study better.',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 12.5,
-                    ),
+                    style: TextStyle(color: Colors.white54, fontSize: 12.5),
                   ),
                 ],
               ),
@@ -141,9 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.12),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -156,10 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 6),
                 Text(
                   _formattedDate(),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -185,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ─── Quick access 2×2 grid ────────────────────────────────────────────────
 
-  Widget _buildQuickAccessGrid(int subjectCount) {
+  Widget _buildQuickAccessGrid(int subjectCount, int assignmentCount) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double ratio = constraints.maxWidth > 500 ? 2.0 : 1.4;
@@ -216,7 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
             DashboardCard(
               icon: Icons.task_alt,
               label: 'Assignments',
-              subtitle: '0 assignments',
+              subtitle: assignmentCount == 1
+                  ? '1 assignment'
+                  : '$assignmentCount assignments',
               color: const Color(0xFF2E7D5E),
               onTap: () => widget.onNavigate(3),
             ),
@@ -257,9 +286,59 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 12),
           Text(
             message,
-            style: const TextStyle(
-              color: Color(0xFF94A3B8),
-              fontSize: 13.5,
+            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignmentPreviewCard(String title, DateTime dueDate) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.task_alt,
+              color: Color(0xFF2E7D5E),
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF1A1A2E),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Due: ${dueDate.day}/${dueDate.month}/${dueDate.year}',
+                  style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

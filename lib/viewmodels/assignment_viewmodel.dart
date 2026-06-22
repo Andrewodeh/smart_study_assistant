@@ -6,16 +6,13 @@ class AssignmentViewModel extends ChangeNotifier {
 
   List<AssignmentModel> get assignments => _assignments;
 
-  void addAssignment(String title, DateTime dueDate) {
-    _assignments.add(
-      AssignmentModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: title,
-        dueDate: dueDate,
-      ),
-    );
+  String addAssignment(String title, DateTime dueDate) {
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+
+    _assignments.add(AssignmentModel(id: id, title: title, dueDate: dueDate));
 
     notifyListeners();
+    return id;
   }
 
   void updateAssignment(String id, String title, DateTime dueDate) {

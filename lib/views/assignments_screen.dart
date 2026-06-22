@@ -4,16 +4,14 @@ import 'package:provider/provider.dart';
 import '../models/assignment_model.dart';
 import '../viewmodels/assignment_viewmodel.dart';
 import '../widgets/page_container.dart';
+import '../services/notification_service.dart';
 
 class AssignmentsScreen extends StatelessWidget {
   const AssignmentsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AssignmentViewModel(),
-      child: const _AssignmentsContent(),
-    );
+    return const _AssignmentsContent();
   }
 }
 
@@ -163,6 +161,7 @@ class _AssignmentsContent extends StatelessWidget {
                 if (value == 'edit') {
                   _showAssignmentDialog(context, assignment: assignment);
                 } else if (value == 'delete') {
+                  NotificationService.cancelAssignmentReminder(assignment.id);
                   vm.deleteAssignment(assignment.id);
                 }
               },
@@ -246,7 +245,22 @@ class _AssignmentsContent extends StatelessWidget {
                     selectedDate!,
                   );
                 } else {
-                  vm.addAssignment(titleController.text.trim(), selectedDate!);
+                  final assignmentId = vm.addAssignment(
+                    titleController.text.trim(),
+                    selectedDate!,
+                  );
+
+                  NotificationService.showInstantNotification(
+                    title: 'Assignment Added',
+                    body:
+                        '${titleController.text.trim()} was added successfully.',
+                  );
+
+                  NotificationService.scheduleAssignmentReminder(
+                    assignmentId: assignmentId,
+                    assignmentTitle: titleController.text.trim(),
+                    dueDate: selectedDate!,
+                  );
                 }
 
                 Navigator.pop(context);
