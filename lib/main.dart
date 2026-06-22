@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 import 'package:provider/provider.dart';
 
 import 'viewmodels/exam_viewmodel.dart';
-import 'views/exams_screen.dart';
-=======
 import 'views/main_screen.dart';
->>>>>>> 188ccf4 (Add smart study assistant screens and services)
 
 void main() {
   runApp(
@@ -23,11 +19,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-<<<<<<< HEAD
-      debugShowCheckedModeBanner: false,
-      title: 'Exams Countdown',
-      home: const ExamsScreen(),
-=======
       title: 'Smart Study Assistant',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -105,7 +96,6 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: const MainScreen(),
->>>>>>> 188ccf4 (Add smart study assistant screens and services)
     );
   }
 }
