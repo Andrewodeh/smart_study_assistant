@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/exam_viewmodel.dart';
+import '../models/subject.dart';
+import '../viewmodels/subject_viewmodel.dart';
+import '../widgets/subject_picker_field.dart';
 
 class ExamsScreen extends StatelessWidget {
   const ExamsScreen({super.key});
@@ -128,6 +131,7 @@ class ExamsScreen extends StatelessWidget {
 
       //  Add Exam Button
       floatingActionButton: FloatingActionButton(
+        heroTag: 'exams_fab',
         onPressed: () {
           _showAddDialog(context);
         },
@@ -138,128 +142,156 @@ class ExamsScreen extends StatelessWidget {
 
   //  Add Exam Dialog
   void _showAddDialog(BuildContext context) {
-    final subjectController = TextEditingController();
-    DateTime? selectedDate;
+    final subjects =
+        Provider.of<SubjectViewModel>(context, listen: false).allSubjects;
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Add Exam"),
-
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Subject input
-            TextField(
-              controller: subjectController,
-              decoration: const InputDecoration(
-                labelText: "Subject",
-                prefixIcon: Icon(Icons.book),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // Date picker
-            ElevatedButton.icon(
-              onPressed: () async {
-                selectedDate = await showDatePicker(
-                  context: context,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2035),
-                  initialDate: DateTime.now(),
-                );
-              },
-              icon: const Icon(Icons.calendar_today),
-              label: const Text("Select Date"),
-            ),
-          ],
-        ),
-
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-
-          ElevatedButton(
-            onPressed: () {
-              if (subjectController.text.isNotEmpty && selectedDate != null) {
-                Provider.of<ExamViewModel>(
-                  context,
-                  listen: false,
-                ).addExam(subjectController.text, selectedDate!);
-
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Add"),
-          ),
-        ],
+      builder: (_) => _ExamFormDialog(
+        title: 'Add Exam',
+        confirmLabel: 'Add',
+        subjects: subjects,
+        onSubmit: (subject, date) {
+          Provider.of<ExamViewModel>(context, listen: false)
+              .addExam(subject, date);
+        },
       ),
     );
   }
 
   void _showEditDialog(BuildContext context, dynamic exam) {
-    final subjectController = TextEditingController(text: exam.subject);
-
-    DateTime selectedDate = exam.examDate;
+    final subjects =
+        Provider.of<SubjectViewModel>(context, listen: false).allSubjects;
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Edit Exam"),
-        content: Column(
+      builder: (_) => _ExamFormDialog(
+        title: 'Edit Exam',
+        confirmLabel: 'Save',
+        subjects: subjects,
+        initialSubject: exam.subject as String,
+        initialDate: exam.examDate as DateTime,
+        onSubmit: (subject, date) {
+          Provider.of<ExamViewModel>(context, listen: false)
+              .updateExam(exam.id, subject, date);
+        },
+      ),
+    );
+  }
+}
+
+/// Add/Edit exam dialog with a filterable subject selector.
+///
+/// The subject field is an [Autocomplete] populated from the user's saved
+/// subjects: typing filters the list by name or code, and the user can still
+/// type a custom subject if it isn't in the list.
+class _ExamFormDialog extends StatefulWidget {
+  final String title;
+  final String confirmLabel;
+  final List<Subject> subjects;
+  final String? initialSubject;
+  final DateTime? initialDate;
+  final void Function(String subject, DateTime date) onSubmit;
+
+  const _ExamFormDialog({
+    required this.title,
+    required this.confirmLabel,
+    required this.subjects,
+    required this.onSubmit,
+    this.initialSubject,
+    this.initialDate,
+  });
+
+  @override
+  State<_ExamFormDialog> createState() => _ExamFormDialogState();
+}
+
+class _ExamFormDialogState extends State<_ExamFormDialog> {
+  late String _subject = widget.initialSubject ?? '';
+  late DateTime? _selectedDate = widget.initialDate;
+  String? _error;
+
+  String _formatDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
+
+  void _submit() {
+    if (_subject.trim().isEmpty) {
+      setState(() => _error = 'Please choose or enter a subject.');
+      return;
+    }
+    if (_selectedDate == null) {
+      setState(() => _error = 'Please select a date.');
+      return;
+    }
+    widget.onSubmit(_subject.trim(), _selectedDate!);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: subjectController,
-              decoration: const InputDecoration(
-                labelText: "Subject",
-                prefixIcon: Icon(Icons.book),
-              ),
+            // ── Filterable subject selector ──
+            SubjectPickerField(
+              subjects: widget.subjects,
+              initialValue: widget.initialSubject,
+              onChanged: (v) => setState(() {
+                _subject = v;
+                _error = null;
+              }),
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
 
-            ElevatedButton.icon(
-              icon: const Icon(Icons.calendar_today),
-              label: const Text("Change Date"),
+            // ── Date picker ──
+            OutlinedButton.icon(
               onPressed: () async {
                 final picked = await showDatePicker(
                   context: context,
-                  firstDate: DateTime.now(),
+                  firstDate: DateTime(2000),
                   lastDate: DateTime(2035),
-                  initialDate: selectedDate,
+                  initialDate: _selectedDate ?? DateTime.now(),
                 );
-
                 if (picked != null) {
-                  selectedDate = picked;
+                  setState(() {
+                    _selectedDate = picked;
+                    _error = null;
+                  });
                 }
               },
+              icon: const Icon(Icons.calendar_today),
+              label: Text(
+                _selectedDate == null
+                    ? 'Select Date'
+                    : 'Date: ${_formatDate(_selectedDate!)}',
+              ),
             ),
+
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.red, fontSize: 13),
+              ),
+            ],
           ],
         ),
-
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-
-          ElevatedButton(
-            onPressed: () {
-              Provider.of<ExamViewModel>(
-                context,
-                listen: false,
-              ).updateExam(exam.id, subjectController.text, selectedDate);
-
-              Navigator.pop(context);
-            },
-            child: const Text("Save"),
-          ),
-        ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: Text(widget.confirmLabel),
+        ),
+      ],
     );
   }
 }

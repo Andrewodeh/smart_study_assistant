@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/subject.dart';
-import '../repositories/subject_repository.dart';
 import '../viewmodels/subject_viewmodel.dart';
 import '../widgets/page_container.dart';
 import 'subject_form_screen.dart';
@@ -13,46 +13,40 @@ class SubjectsScreen extends StatefulWidget {
 }
 
 class _SubjectsScreenState extends State<SubjectsScreen> {
-  final SubjectViewModel _viewModel =
-      SubjectViewModel(SharedPrefsSubjectRepository());
-
   final TextEditingController _searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSubjects();
-  }
+  // The shared, Hive-backed view model registered in main.dart. Reading it
+  // here (instead of creating a local one) means subjects added on this screen
+  // are immediately reflected on the dashboard and in the exam/assignment
+  // subject pickers, all from the same local store.
+  SubjectViewModel get _viewModel => context.read<SubjectViewModel>();
 
-  Future<void> _loadSubjects() async {
-    await _viewModel.loadSubjects();
-    setState(() {});
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _onSearchChanged(String query) async {
     await _viewModel.search(query);
-    setState(() {});
   }
 
   Future<void> _openAddForm() async {
-    final bool? saved = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SubjectFormScreen(viewModel: _viewModel),
+        builder: (_) => SubjectFormScreen(viewModel: _viewModel),
       ),
     );
-    if (saved == true) await _loadSubjects();
   }
 
   Future<void> _openEditForm(Subject subject) async {
-    final bool? saved = await Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            SubjectFormScreen(viewModel: _viewModel, subject: subject),
+        builder: (_) => SubjectFormScreen(viewModel: _viewModel, subject: subject),
       ),
     );
-    if (saved == true) await _loadSubjects();
   }
 
   Future<void> _confirmDelete(Subject subject) async {
@@ -84,6 +78,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<SubjectViewModel>();
     return Scaffold(
       appBar: AppBar(title: const Text('Subjects')),
       body: PageContainer(
@@ -114,12 +109,12 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
 
             // Subject list or empty state
             Expanded(
-              child: _viewModel.subjects.isEmpty
+              child: vm.subjects.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                      itemCount: _viewModel.subjects.length,
+                      itemCount: vm.subjects.length,
                       itemBuilder: (context, index) {
-                        final Subject subject = _viewModel.subjects[index];
+                        final Subject subject = vm.subjects[index];
                         return _buildSubjectCard(subject);
                       },
                     ),
@@ -128,6 +123,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'subjects_fab',
         onPressed: _openAddForm,
         child: const Icon(Icons.add),
       ),

@@ -4,7 +4,6 @@ import 'subjects_screen.dart';
 import 'exams_screen.dart';
 import 'assignments_screen.dart';
 import 'calendar_screen.dart';
-import '../widgets/side_navigation.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,7 +17,7 @@ class _MainScreenState extends State<MainScreen> {
 
   // Incremented every time the user returns to the dashboard so that
   // HomeScreen's ValueKey changes and forces a fresh initState reload,
-  // which updates the subject count.
+  // which updates the counts.
   int _homeRefreshKey = 0;
 
   void _onTabSelected(int index) {
@@ -30,32 +29,50 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ── Dashboard: full screen, no navigation chrome ──────────────────────
-    if (_selectedIndex == 0) {
-      return HomeScreen(
+    final pages = [
+      HomeScreen(
         key: ValueKey(_homeRefreshKey),
         onNavigate: _onTabSelected,
-      );
-    }
+      ),
+      const SubjectsScreen(),
+      const ExamsScreen(),
+      const AssignmentsScreen(),
+      const CalendarScreen(),
+    ];
 
-    // ── Inner pages: side navigation + content ────────────────────────────
     return Scaffold(
-      body: Row(
-        children: [
-          SideNavigation(
-            selectedIndex: _selectedIndex,
-            onTabSelected: _onTabSelected,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: pages,
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onTabSelected,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
           ),
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex - 1,
-              children: const [
-                SubjectsScreen(),
-                ExamsScreen(),
-                AssignmentsScreen(),
-                CalendarScreen(),
-              ],
-            ),
+          NavigationDestination(
+            icon: Icon(Icons.book_outlined),
+            selectedIcon: Icon(Icons.book_rounded),
+            label: 'Subjects',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school_rounded),
+            label: 'Exams',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.task_alt_outlined),
+            selectedIcon: Icon(Icons.task_alt),
+            label: 'Tasks',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month_rounded),
+            label: 'Calendar',
           ),
         ],
       ),

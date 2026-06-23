@@ -1,36 +1,16 @@
 import 'package:flutter/material.dart';
-import '../repositories/subject_repository.dart';
-import '../viewmodels/subject_viewmodel.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/dashboard_card.dart';
 import '../viewmodels/exam_viewmodel.dart';
+import '../viewmodels/subject_viewmodel.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/assignment_viewmodel.dart';
+import '../theme/app_colors.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   final void Function(int index) onNavigate;
 
   const HomeScreen({super.key, required this.onNavigate});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final SubjectViewModel _subjectViewModel = SubjectViewModel(
-    SharedPrefsSubjectRepository(),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    await _subjectViewModel.loadSubjects();
-    setState(() {});
-  }
 
   String _formattedDate() {
     final DateTime now = DateTime.now();
@@ -63,7 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final int subjectCount = _subjectViewModel.subjects.length;
+    final subjectVm = Provider.of<SubjectViewModel>(context);
+    final int subjectCount = subjectVm.totalCount;
     final examVm = Provider.of<ExamViewModel>(context);
     final int examCount = examVm.examCount;
     final assignmentVm = Provider.of<AssignmentViewModel>(context);
@@ -72,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F4F0),
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,11 +69,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       _buildSectionTitle('Quick Access'),
                       const SizedBox(height: 14),
-                      _buildQuickAccessGrid(
-                        subjectCount,
-                        pendingAssignments.length,
-                        examCount,
-                      ),
+                              _buildQuickAccessGrid(
+                                subjectCount,
+                                pendingAssignments.length,
+                                examCount,
+                              ),
                       const SizedBox(height: 32),
                       _buildSectionTitle('Upcoming Exams'),
                       const SizedBox(height: 12),
@@ -135,8 +116,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Container(
       width: double.infinity,
-      color: const Color(0xFF0F1F3D),
-      padding: EdgeInsets.fromLTRB(24, statusBarHeight + 24, 24, 28),
+      decoration: const BoxDecoration(
+        gradient: AppColors.headerGradient,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, statusBarHeight + 28, 24, 30),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -183,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const Icon(
                   Icons.today_outlined,
-                  color: Color(0xFFE8A020),
+                  color: Color(0xFF6FE9D6),
                   size: 14,
                 ),
                 const SizedBox(width: 6),
@@ -222,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double ratio = constraints.maxWidth > 500 ? 2.0 : 1.4;
+        final double ratio = constraints.maxWidth > 500 ? 1.9 : 1.15;
         return GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -230,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           childAspectRatio: ratio,
-          children: [
+              children: [
             DashboardCard(
               icon: Icons.book_rounded,
               label: 'Subjects',
@@ -238,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? '1 subject'
                   : '$subjectCount subjects',
               color: const Color(0xFF2563EB),
-              onTap: () => widget.onNavigate(1),
+              onTap: () => onNavigate(1),
             ),
             DashboardCard(
               icon: Icons.assignment_rounded,
@@ -246,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
               subtitle: examCount == 1 ? '1 exam' : '$examCount exams',
 
               color: const Color(0xFFC0392B),
-              onTap: () => widget.onNavigate(2),
+              onTap: () => onNavigate(2),
             ),
             DashboardCard(
               icon: Icons.task_alt,
@@ -255,14 +239,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ? '1 assignment'
                   : '$assignmentCount assignments',
               color: const Color(0xFF2E7D5E),
-              onTap: () => widget.onNavigate(3),
+              onTap: () => onNavigate(3),
             ),
             DashboardCard(
               icon: Icons.calendar_month_rounded,
               label: 'Calendar',
               subtitle: 'View calendar',
               color: const Color(0xFF475569),
-              onTap: () => widget.onNavigate(4),
+              onTap: () => onNavigate(4),
             ),
           ],
         );

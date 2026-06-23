@@ -1,9 +1,19 @@
+import 'package:hive/hive.dart';
+part 'subject.g.dart';
+
+@HiveType(typeId: 0)
 class Subject {
+  @HiveField(0)
   final String id;
+  @HiveField(1)
   final String name;
+  @HiveField(2)
   final String code;
+  @HiveField(3)
   final String instructor;
+  @HiveField(4)
   final int creditHours;
+  @HiveField(5)
   final int colorValue;
 
   Subject({

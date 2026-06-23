@@ -15,7 +15,7 @@ class PageContainer extends StatelessWidget {
   const PageContainer({
     super.key,
     required this.child,
-    this.maxWidth = 860,
+    this.maxWidth = 720,
   });
 
   @override
@@ -24,9 +24,9 @@ class PageContainer extends StatelessWidget {
       builder: (context, constraints) {
         final double hPad = constraints.maxWidth > maxWidth
             ? (constraints.maxWidth - maxWidth) / 2.0
-            : 24.0;
+            : 16.0;
         return Padding(
-          padding: EdgeInsets.fromLTRB(hPad, 24, hPad, 16),
+          padding: EdgeInsets.fromLTRB(hPad, 18, hPad, 12),
           child: child,
         );
       },

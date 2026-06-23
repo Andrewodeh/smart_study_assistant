@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -7,7 +9,15 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
+  // Notifications are only supported on Android in this app. `dart:io`'s
+  // Platform is unavailable on web, so guard with kIsWeb before touching it.
+  static bool get _isAndroid => !kIsWeb && Platform.isAndroid;
+
   static Future<void> init() async {
+    // Timezones and notifications are only needed on Android. On web/other
+    // platforms there is nothing to set up, so bail out early.
+    if (!_isAndroid) return;
+
     tz.initializeTimeZones();
 
     try {
@@ -38,6 +48,7 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    if (!_isAndroid) return;
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
           'assignments_channel',
@@ -64,6 +75,7 @@ class NotificationService {
     required String assignmentTitle,
     required DateTime dueDate,
   }) async {
+    if (!_isAndroid) return;
     final DateTime reminderDate = dueDate.subtract(const Duration(days: 1));
 
     final tz.TZDateTime scheduledDate = tz.TZDateTime(
@@ -103,6 +115,7 @@ class NotificationService {
   }
 
   static Future<void> cancelAssignmentReminder(String assignmentId) async {
+    if (!_isAndroid) return;
     await _notifications.cancel(id: assignmentId.hashCode);
   }
 }

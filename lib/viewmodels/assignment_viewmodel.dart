@@ -1,40 +1,66 @@
 import 'package:flutter/material.dart';
 import '../models/assignment_model.dart';
+import '../repositories/assignment_repository.dart';
 
 class AssignmentViewModel extends ChangeNotifier {
+  final AssignmentRepository _repo;
   final List<AssignmentModel> _assignments = [];
 
   List<AssignmentModel> get assignments => _assignments;
 
-  String addAssignment(String title, DateTime dueDate) {
+  AssignmentViewModel([AssignmentRepository? repo]) : _repo = repo ?? HiveAssignmentRepository() {
+    _loadFromRepo();
+  }
+
+  Future<void> _loadFromRepo() async {
+    final loaded = await _repo.getAssignments();
+    _assignments
+      ..clear()
+      ..addAll(loaded);
+    notifyListeners();
+  }
+
+  Future<String> addAssignment(String title, DateTime dueDate,
+      {String subject = ''}) async {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
-
-    _assignments.add(AssignmentModel(id: id, title: title, dueDate: dueDate));
-
+    final assignment =
+        AssignmentModel(id: id, title: title, dueDate: dueDate, subject: subject);
+    await _repo.addAssignment(assignment);
+    _assignments.add(assignment);
     notifyListeners();
     return id;
   }
 
-  void updateAssignment(String id, String title, DateTime dueDate) {
+  Future<void> updateAssignment(String id, String title, DateTime dueDate,
+      {String subject = ''}) async {
     final index = _assignments.indexWhere((a) => a.id == id);
-
     if (index != -1) {
-      _assignments[index].title = title;
-      _assignments[index].dueDate = dueDate;
+      final updated = AssignmentModel(
+          id: id,
+          title: title,
+          dueDate: dueDate,
+          isCompleted: _assignments[index].isCompleted,
+          subject: subject);
+      await _repo.deleteAssignment(id);
+      await _repo.addAssignment(updated);
+      _assignments[index] = updated;
       notifyListeners();
     }
   }
 
-  void deleteAssignment(String id) {
+  Future<void> deleteAssignment(String id) async {
+    await _repo.deleteAssignment(id);
     _assignments.removeWhere((a) => a.id == id);
     notifyListeners();
   }
 
-  void toggleCompleted(String id) {
+  Future<void> toggleCompleted(String id) async {
     final index = _assignments.indexWhere((a) => a.id == id);
-
     if (index != -1) {
-      _assignments[index].isCompleted = !_assignments[index].isCompleted;
+      final current = _assignments[index];
+      final newValue = !current.isCompleted;
+      current.isCompleted = newValue;
+      await _repo.setComplete(id, newValue);
       notifyListeners();
     }
   }

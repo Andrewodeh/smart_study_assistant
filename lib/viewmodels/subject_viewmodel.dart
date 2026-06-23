@@ -1,21 +1,32 @@
+import 'package:flutter/material.dart';
 import '../models/subject.dart';
 import '../repositories/subject_repository.dart';
 
-class SubjectViewModel {
+class SubjectViewModel extends ChangeNotifier {
   final SubjectRepository _repository;
   List<Subject> _allSubjects = [];
   List<Subject> subjects = [];
 
-  SubjectViewModel(this._repository);
+  SubjectViewModel(this._repository) {
+    loadSubjects();
+  }
+
+  /// Full subject list, unaffected by the current search filter.
+  List<Subject> get allSubjects => List.unmodifiable(_allSubjects);
+
+  /// Total number of saved subjects (ignores any active search filter).
+  int get totalCount => _allSubjects.length;
 
   Future<void> loadSubjects() async {
     _allSubjects = await _repository.loadAll();
     subjects = List.from(_allSubjects);
+    notifyListeners();
   }
 
   Future<void> search(String query) async {
     if (query.isEmpty) {
       subjects = List.from(_allSubjects);
+      notifyListeners();
       return;
     }
     final String q = query.toLowerCase();
@@ -25,6 +36,7 @@ class SubjectViewModel {
             s.code.toLowerCase().contains(q) ||
             s.instructor.toLowerCase().contains(q))
         .toList();
+    notifyListeners();
   }
 
   Future<bool> addSubject({
@@ -46,6 +58,7 @@ class SubjectViewModel {
     _allSubjects.add(subject);
     subjects = List.from(_allSubjects);
     await _repository.saveAll(_allSubjects);
+    notifyListeners();
     return true;
   }
 
@@ -70,6 +83,7 @@ class SubjectViewModel {
     );
     subjects = List.from(_allSubjects);
     await _repository.saveAll(_allSubjects);
+    notifyListeners();
     return true;
   }
 
@@ -77,5 +91,6 @@ class SubjectViewModel {
     _allSubjects.removeWhere((s) => s.id == id);
     subjects = List.from(_allSubjects);
     await _repository.saveAll(_allSubjects);
+    notifyListeners();
   }
 }
