@@ -3,6 +3,7 @@ import '../repositories/subject_repository.dart';
 import '../viewmodels/subject_viewmodel.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/dashboard_card.dart';
+import '../viewmodels/exam_viewmodel.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/assignment_viewmodel.dart';
 
@@ -63,7 +64,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final int subjectCount = _subjectViewModel.subjects.length;
-
+    final examVm = Provider.of<ExamViewModel>(context);
+    final int examCount = examVm.examCount;
     final assignmentVm = Provider.of<AssignmentViewModel>(context);
     final pendingAssignments = assignmentVm.assignments
         .where((assignment) => !assignment.isCompleted)
@@ -89,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _buildQuickAccessGrid(
                         subjectCount,
                         pendingAssignments.length,
+                        examCount,
                       ),
                       const SizedBox(height: 32),
                       _buildSectionTitle('Upcoming Exams'),
@@ -212,7 +215,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ─── Quick access 2×2 grid ────────────────────────────────────────────────
 
-  Widget _buildQuickAccessGrid(int subjectCount, int assignmentCount) {
+  Widget _buildQuickAccessGrid(
+    int subjectCount,
+    int assignmentCount,
+    int examCount,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double ratio = constraints.maxWidth > 500 ? 2.0 : 1.4;
@@ -236,7 +243,8 @@ class _HomeScreenState extends State<HomeScreen> {
             DashboardCard(
               icon: Icons.assignment_rounded,
               label: 'Exams',
-              subtitle: '0 exams',
+              subtitle: examCount == 1 ? '1 exam' : '$examCount exams',
+
               color: const Color(0xFFC0392B),
               onTap: () => widget.onNavigate(2),
             ),
