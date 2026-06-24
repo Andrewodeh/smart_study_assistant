@@ -51,6 +51,12 @@ class HomeScreen extends StatelessWidget {
     final pendingAssignments = assignmentVm.assignments
         .where((assignment) => !assignment.isCompleted)
         .toList();
+    final DateTime today =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final upcomingExams = examVm.exams
+        .where((e) => !e.examDate.isBefore(today))
+        .toList()
+      ..sort((a, b) => a.examDate.compareTo(b.examDate));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -77,10 +83,19 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 32),
                       _buildSectionTitle('Upcoming Exams'),
                       const SizedBox(height: 12),
-                      _buildPlaceholderCard(
-                        'No upcoming exams yet.',
-                        Icons.assignment_outlined,
-                      ),
+                      upcomingExams.isEmpty
+                          ? _buildPlaceholderCard(
+                              'No upcoming exams yet.',
+                              Icons.assignment_outlined,
+                            )
+                          : Column(
+                              children: upcomingExams.map((exam) {
+                                return _buildExamPreviewCard(
+                                  exam.subject,
+                                  exam.examDate,
+                                );
+                              }).toList(),
+                            ),
                       const SizedBox(height: 28),
                       _buildSectionTitle('Pending Assignments'),
                       const SizedBox(height: 12),
@@ -325,6 +340,59 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Due: ${dueDate.day}/${dueDate.month}/${dueDate.year}',
+                  style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExamPreviewCard(String subject, DateTime examDate) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.assignment_rounded,
+              color: Color(0xFFC0392B),
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  subject,
+                  style: const TextStyle(
+                    color: Color(0xFF1A1A2E),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Date: ${examDate.day}/${examDate.month}/${examDate.year}',
                   style: const TextStyle(
                     color: Color(0xFF94A3B8),
                     fontSize: 12.5,

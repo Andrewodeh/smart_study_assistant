@@ -4,6 +4,7 @@ import '../viewmodels/exam_viewmodel.dart';
 import '../models/subject.dart';
 import '../viewmodels/subject_viewmodel.dart';
 import '../widgets/subject_picker_field.dart';
+import '../services/notification_service.dart';
 
 class ExamsScreen extends StatelessWidget {
   const ExamsScreen({super.key});
@@ -222,7 +223,33 @@ class _ExamFormDialogState extends State<_ExamFormDialog> {
       setState(() => _error = 'Please select a date.');
       return;
     }
+    final today = DateTime(
+        DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    if (_selectedDate!.isBefore(today)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Exam date cannot be in the past.')),
+      );
+      return;
+    }
+    final bool isAdding = widget.initialSubject == null;
+    final messenger = ScaffoldMessenger.of(context);
     widget.onSubmit(_subject.trim(), _selectedDate!);
+    if (isAdding) {
+      NotificationService.showInstantNotification(
+        title: 'Exam Added',
+        body: '${_subject.trim()} exam was added successfully.',
+      ).ignore();
+      NotificationService.scheduleExamReminder(
+        subject: _subject.trim(),
+        examDate: _selectedDate!,
+      ).ignore();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Exam added successfully.'),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    }
     Navigator.pop(context);
   }
 
@@ -251,11 +278,16 @@ class _ExamFormDialogState extends State<_ExamFormDialog> {
             // ── Date picker ──
             OutlinedButton.icon(
               onPressed: () async {
+                final today = DateTime(DateTime.now().year,
+                    DateTime.now().month, DateTime.now().day);
                 final picked = await showDatePicker(
                   context: context,
-                  firstDate: DateTime(2000),
+                  firstDate: today,
                   lastDate: DateTime(2035),
-                  initialDate: _selectedDate ?? DateTime.now(),
+                  initialDate: (_selectedDate != null &&
+                          !_selectedDate!.isBefore(today))
+                      ? _selectedDate!
+                      : today,
                 );
                 if (picked != null) {
                   setState(() {

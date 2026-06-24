@@ -118,4 +118,47 @@ class NotificationService {
     if (!_isAndroid) return;
     await _notifications.cancel(id: assignmentId.hashCode);
   }
+
+  static Future<void> scheduleExamReminder({
+    required String subject,
+    required DateTime examDate,
+  }) async {
+    if (!_isAndroid) return;
+    final DateTime reminderDate = examDate.subtract(const Duration(days: 1));
+
+    final tz.TZDateTime scheduledDate = tz.TZDateTime(
+      tz.local,
+      reminderDate.year,
+      reminderDate.month,
+      reminderDate.day,
+      9,
+      0,
+    );
+
+    if (scheduledDate.isBefore(tz.TZDateTime.now(tz.local))) {
+      return;
+    }
+
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'exam_reminders_channel',
+          'Exam Reminders',
+          channelDescription: 'Reminder one day before exam',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+
+    const NotificationDetails details = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await _notifications.zonedSchedule(
+      id: '${subject}_${examDate.toIso8601String()}'.hashCode,
+      title: 'Exam Reminder',
+      body: '$subject exam is tomorrow.',
+      scheduledDate: scheduledDate,
+      notificationDetails: details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
 }

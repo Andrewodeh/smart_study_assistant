@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../widgets/page_container.dart';
+import '../repositories/exam_repository.dart';
+import '../repositories/assignment_repository.dart';
 import '../models/exam_model.dart';
 import '../models/assignment_model.dart';
-import '../viewmodels/exam_viewmodel.dart';
-import '../viewmodels/assignment_viewmodel.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -14,26 +13,80 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  final HiveExamRepository _examRepo = HiveExamRepository();
+  final HiveAssignmentRepository _assignmentRepo = HiveAssignmentRepository();
+
   DateTime _focusedMonth = DateTime.now();
   DateTime _selectedDate = DateTime.now();
+
+  Map<String, List<dynamic>> _events = {};
+  bool _loading = true;
+  String? _lastError;
 
   static const List<String> _monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
-  static const Color _navy = Color(0xFF6C4DF6);
+  // Palette
+  static const Color _navy = Color(0xFF6C4DF6); // primary violet
   static const Color _border = Color(0xFFE7E5F0);
   static const Color _muted = Color(0xFF6B6880);
   static const Color _examColor = Color(0xFFE53E5A);
   static const Color _assignmentColor = Color(0xFF16A974);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    setState(() => _loading = true);
+    try {
+      final exams = await _examRepo.getExams();
+      final assignments = await _assignmentRepo.getAssignments();
+
+      final Map<String, List<dynamic>> map = {};
+
+      void addEvent(DateTime dt, dynamic e) {
+        map.putIfAbsent(_keyForDate(dt), () => []).add(e);
+      }
+
+      for (final e in exams) {
+        addEvent(e.examDate, e);
+      }
+      for (final a in assignments) {
+        addEvent(a.dueDate, a);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _events = map;
+        _loading = false;
+        _lastError = null;
+      });
+    } catch (err, st) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _lastError = '$err';
+      });
+      // ignore: avoid_print
+      print('Error loading calendar events: $err\n$st');
+    }
+  }
 
   String _keyForDate(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
-  int _daysInMonth(DateTime m) => DateTime(m.year, m.month + 1, 0).day;
+  int _daysInMonth(DateTime m) {
+    final next =
+        (m.month == 12) ? DateTime(m.year + 1) : DateTime(m.year, m.month + 1);
+    return next.subtract(const Duration(days: 1)).day;
+  }
 
   void _goToToday() {
     setState(() {
@@ -44,22 +97,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Listen to both ViewModels — calendar rebuilds automatically on any change
-    final examVM = Provider.of<ExamViewModel>(context);
-    final assignmentVM = Provider.of<AssignmentViewModel>(context);
-
-    // Build events map synchronously from ViewModel data (already in memory)
-    final Map<String, List<dynamic>> events = {};
-    for (final exam in examVM.exams) {
-      final key = _keyForDate(exam.examDate);
-      (events[key] ??= []).add(exam);
-    }
-    for (final assignment in assignmentVM.assignments) {
-      final key = _keyForDate(assignment.dueDate);
-      (events[key] ??= []).add(assignment);
-    }
-
-    final eventsForSelected = events[_keyForDate(_selectedDate)] ?? [];
+    final eventsForSelected = _events[_keyForDate(_selectedDate)] ?? [];
 
     return Scaffold(
       appBar: AppBar(
@@ -72,7 +110,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => setState(() {}),
+            onPressed: _loadEvents,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -86,9 +124,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
               style: TextStyle(fontSize: 13.5, color: _muted),
             ),
             const SizedBox(height: 16),
+            if (_lastError != null) _buildErrorBanner(),
             _buildMonthHeader(),
             const SizedBox(height: 12),
-            _buildCalendarCard(events),
+            _buildCalendarCard(),
             const SizedBox(height: 16),
             _buildLegend(),
             const SizedBox(height: 16),
@@ -97,6 +136,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Expanded(child: _buildEventsList(eventsForSelected)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Color(0xFFC0392B), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Could not load events: $_lastError',
+              style: const TextStyle(color: Color(0xFF991B1B), fontSize: 13),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -152,7 +216,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildCalendarCard(Map<String, List<dynamic>> events) {
+  Widget _buildCalendarCard() {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -169,6 +233,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       child: Column(
         children: [
+          // Weekday headers
           Row(
             children: const [
               _WeekdayLabel('Sun'),
@@ -181,102 +246,90 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          GridView.count(
-            crossAxisCount: 7,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 4,
-            children: _buildDayCells(events),
-          ),
+          _loading
+              ? const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : GridView.count(
+                  crossAxisCount: 7,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 4,
+                  children: _buildDayCells(),
+                ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildDayCells(Map<String, List<dynamic>> events) {
-    final firstDayOfMonth =
-        DateTime(_focusedMonth.year, _focusedMonth.month, 1);
-    final startOffset = firstDayOfMonth.weekday % 7;
+  List<Widget> _buildDayCells() {
+    final first = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final firstWeekday = first.weekday % 7; // make Sunday=0
     final totalDays = _daysInMonth(_focusedMonth);
     final today = DateTime.now();
 
     final cells = <Widget>[];
 
-    for (int i = 0; i < startOffset; i++) {
+    for (int i = 0; i < firstWeekday; i++) {
       cells.add(const SizedBox.shrink());
     }
 
     for (int day = 1; day <= totalDays; day++) {
-      final date = DateTime(_focusedMonth.year, _focusedMonth.month, day);
-      final dayEvents = events[_keyForDate(date)] ?? const [];
+      final dt = DateTime(_focusedMonth.year, _focusedMonth.month, day);
+      final dayEvents = _events[_keyForDate(dt)] ?? const [];
+      final isSelected = _isSameDay(_selectedDate, dt);
+      final isToday = _isSameDay(today, dt);
 
-      final isSelected = _isSameDay(_selectedDate, date);
-      final isToday = _isSameDay(today, date);
       final hasExam = dayEvents.any((e) => e is ExamModel);
       final hasAssignment = dayEvents.any((e) => e is AssignmentModel);
 
       cells.add(
-        _buildDayCell(
-          day: day,
-          date: date,
-          isSelected: isSelected,
-          isToday: isToday,
-          hasExam: hasExam,
-          hasAssignment: hasAssignment,
+        GestureDetector(
+          onTap: () => setState(() => _selectedDate = dt),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? _navy
+                  : (isToday ? const Color(0xFFEDE9FE) : Colors.transparent),
+              borderRadius: BorderRadius.circular(10),
+              border: isToday && !isSelected
+                  ? Border.all(color: const Color(0xFFB9A9FB))
+                  : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  day.toString(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: isSelected
+                        ? Colors.white
+                        : const Color(0xFF1A1A2E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (hasExam)
+                      _dot(isSelected ? Colors.white : _examColor),
+                    if (hasExam && hasAssignment) const SizedBox(width: 3),
+                    if (hasAssignment)
+                      _dot(isSelected ? Colors.white : _assignmentColor),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
 
     return cells;
-  }
-
-  Widget _buildDayCell({
-    required int day,
-    required DateTime date,
-    required bool isSelected,
-    required bool isToday,
-    required bool hasExam,
-    required bool hasAssignment,
-  }) {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedDate = date),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? _navy
-              : (isToday ? const Color(0xFFEDE9FE) : Colors.transparent),
-          borderRadius: BorderRadius.circular(10),
-          border: isToday && !isSelected
-              ? Border.all(color: const Color(0xFFB9A9FB))
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              day.toString(),
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: isSelected ? Colors.white : const Color(0xFF1A1A2E),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (hasExam)
-                  _dot(isSelected ? Colors.white : _examColor),
-                if (hasExam && hasAssignment) const SizedBox(width: 3),
-                if (hasAssignment)
-                  _dot(isSelected ? Colors.white : _assignmentColor),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _dot(Color color) => Container(
@@ -314,6 +367,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildEventsList(List<dynamic> events) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (events.isEmpty) {
       return SingleChildScrollView(
         child: Container(
@@ -357,12 +413,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             color: _assignmentColor,
             badge: e.isCompleted ? 'Completed' : 'Assignment',
             title: e.title,
-            subtitle:
-                'Due ${e.dueDate.day}/${e.dueDate.month}/${e.dueDate.year}',
+            subtitle: 'Due ${e.dueDate.day}/${e.dueDate.month}/${e.dueDate.year}',
             trailing: Icon(
               e.isCompleted ? Icons.check_circle : Icons.circle_outlined,
-              color:
-                  e.isCompleted ? _assignmentColor : const Color(0xFFCBD5E1),
+              color: e.isCompleted ? _assignmentColor : const Color(0xFFCBD5E1),
               size: 20,
             ),
           );

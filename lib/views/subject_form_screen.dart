@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/subject.dart';
 import '../viewmodels/subject_viewmodel.dart';
 import '../widgets/page_container.dart';
+import '../services/notification_service.dart';
 
 // One screen that handles BOTH adding and editing a subject:
 //   - subject == null  → ADD mode
@@ -55,8 +57,25 @@ class _SubjectFormScreenState extends State<SubjectFormScreen> {
     final String name = _nameController.text;
     final String code = _codeController.text;
     final String instructor = _instructorController.text;
-    final int creditHours = int.tryParse(_creditController.text.trim()) ?? 0;
+    final String creditText = _creditController.text.trim();
 
+    if (instructor.isNotEmpty &&
+        !RegExp(r'^[a-zA-Zء-يٱ-ۓۺ-ۼ ]+$').hasMatch(instructor)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Instructor name must contain letters only.')),
+      );
+      return;
+    }
+
+    if (creditText.isNotEmpty && int.tryParse(creditText) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Credit hours must be a number.')),
+      );
+      return;
+    }
+
+    final int creditHours = int.tryParse(creditText) ?? 0;
     bool ok;
     if (widget.subject == null) {
       ok = await widget.viewModel.addSubject(
@@ -84,6 +103,20 @@ class _SubjectFormScreenState extends State<SubjectFormScreen> {
         const SnackBar(content: Text('Subject name cannot be empty')),
       );
       return;
+    }
+
+    if (widget.subject == null) {
+      await NotificationService.showInstantNotification(
+        title: 'Subject Added',
+        body: 'Your subject has been added successfully.',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Subject added successfully.'),
+          duration: Duration(seconds: 5),
+        ),
+      );
     }
 
     Navigator.pop(context, true);
@@ -136,12 +169,18 @@ class _SubjectFormScreenState extends State<SubjectFormScreen> {
                   _buildField(
                     label: 'Instructor (optional)',
                     controller: _instructorController,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'[a-zA-Zء-يٱ-ۓۺ-ۼ ]'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 14),
                   _buildField(
                     label: 'Credit hours (optional)',
                     controller: _creditController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
                   const SizedBox(height: 24),
                   _buildColorPicker(),
@@ -168,10 +207,12 @@ class _SubjectFormScreenState extends State<SubjectFormScreen> {
     required String label,
     required TextEditingController controller,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(labelText: label),
     );
   }
