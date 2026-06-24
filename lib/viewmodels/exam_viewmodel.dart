@@ -14,27 +14,35 @@ class ExamViewModel extends ChangeNotifier {
         examDate: examDate,
       ),
     );
-
     notifyListeners();
   }
 
-  void deleteExam(String id) {
-    _exams.removeWhere((exam) => exam.id == id);
-    notifyListeners();
-  }
-
-  void updateExam(String id, String subject, DateTime examDate) {
+  void updateExam(String id, String newSubject, DateTime newDate) {
     final index = _exams.indexWhere((e) => e.id == id);
 
     if (index != -1) {
-      _exams[index].subject = subject;
-      _exams[index].examDate = examDate;
+      _exams[index] = ExamModel(id: id, subject: newSubject, examDate: newDate);
 
       notifyListeners();
     }
   }
 
-  int getDaysLeft(DateTime examDate) {
-    return examDate.difference(DateTime.now()).inDays;
+  int get examCount => _exams.length;
+
+  void deleteExam(String id) {
+    _exams.removeWhere((e) => e.id == id);
+    notifyListeners();
+  }
+
+  int getDaysLeft(DateTime date) {
+    return date.difference(DateTime.now()).inDays;
+  }
+
+  List<ExamModel> getUpcomingExams() {
+    List<ExamModel> sorted = List.from(_exams);
+
+    sorted.sort((a, b) => a.examDate.compareTo(b.examDate));
+
+    return sorted.take(3).toList();
   }
 }

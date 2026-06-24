@@ -15,6 +15,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ExamViewModel()),
         ChangeNotifierProvider(create: (_) => AssignmentViewModel()),
+        ChangeNotifierProvider(create: (_) => ExamViewModel()),
       ],
       child: const MyApp(),
     ),
